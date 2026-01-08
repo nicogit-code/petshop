@@ -61,43 +61,72 @@ include 'config.php';
     </div>
     <!-- Single Page Header End -->
 
-<?php include 'config.php'; ?>
-<div class="container py-5">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Produs</th>
-                <th>Preț</th>
-                <th>Cantitate</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php 
-            $total_general = 0;
-            if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])):
-                foreach ($_SESSION['cart'] as $id => $item): 
-                    $subtotal = $item['pret'] * $item['cantitate'];
-                    $total_general += $subtotal;
-            ?>
-                <tr>
-                    <td><?php echo $item['nume']; ?></td>
-                    <td><?php echo $item['pret']; ?> lei</td>
-                    <td><?php echo $item['cantitate']; ?></td>
-                    <td><?php echo $subtotal; ?> lei</td>
-                </tr>
-            <?php endforeach; ?>
-                <tr>
-                    <td colspan="3" class="text-end"><strong>Total General:</strong></td>
-                    <td><strong><?php echo $total_general; ?> lei</strong></td>
-                </tr>
-            <?php else: ?>
-                <tr><td colspan="4">Coșul este gol.</td></tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
-    <a href="assets/php/goleste-cos.php" class="btn btn-danger">Golește coșul</a>
-</div>
+    <div class="container py-5">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Produs</th>
+                        <th>Imagine</th>
+                        <th>Preț</th>
+                        <th>Cantitate</th>
+                        <th>Total</th>
+                        <th>Acțiuni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    $total_general = 0;
+                    if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])):
+                        foreach ($_SESSION['cart'] as $id => $item): 
+                            $subtotal = $item['pret'] * $item['cantitate'];
+                            $total_general += $subtotal;
+                    ?>
+                        <tr>
+                            <td class="fw-bold"><?php echo $item['nume']; ?></td>
+                            <td><img src="../images/product-img/<?php echo $item['imagine']; ?>" style="width: 50px;"></td>
+                            <td><?php echo number_format($item['pret'], 2); ?> lei</td>
+                            <td>
+                                <form action="gestionare-cos.php" method="POST" class="d-inline">
+                                    <input type="hidden" name="id_produs" value="<?php echo $id; ?>">
+                                    <select name="cantitate" onchange="this.form.submit()" class="form-select form-select-sm" style="width: 70px;">
+                                        <?php for($i=1; $i<=10; $i++): ?>
+                                            <option value="<?php echo $i; ?>" <?php if($i == $item['cantitate']) echo 'selected'; ?>>
+                                                <?php echo $i; ?>
+                                            </option>
+                                        <?php endfor; ?>
+                                    </select>
+                                    <input type="hidden" name="update_qty" value="1">
+                                </form>
+                            </td>
+                            <td class="text-primary fw-bold"><?php echo number_format($subtotal, 2); ?> lei</td>
+                            <td>
+                                <a href="gestionare-cos.php?sterge=<?php echo $id; ?>" class="btn btn-sm btn-danger">
+                                    <i class="fa fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                        <tr class="table-light">
+                            <td colspan="4" class="text-end"><strong>Total General:</strong></td>
+                            <td colspan="2"><strong class="fs-5 text-primary"><?php echo number_format($total_general, 2); ?> lei</strong></td>
+                        </tr>
+                    <?php else: ?>
+                        <tr><td colspan="6" class="text-center py-5">Coșul este gol. <a href="products-page.php">Mergi la cumpărături!</a></td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+            <a href="goleste-cos.php" class="btn btn-danger rounded-pill px-4">
+                <i class="fas fa-trash-alt me-2"></i> Golește coșul
+            </a>
+            <a href="checkout.php" class="btn btn-primary border-secondary rounded-pill px-4 py-2 <?php if(empty($_SESSION['cart'])) echo 'disabled'; ?>">
+                Finalizează comanda <i class="fas fa-chevron-right ms-2"></i>
+            </a>
+        </div>
+    </div>
 
     <!-- Footer Start -->
     <?php include 'footer.php'; ?>
