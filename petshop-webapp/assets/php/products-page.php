@@ -5,22 +5,40 @@ include 'config.php';
 $termen = isset($_GET['cauta']) ? $conn->real_escape_string($_GET['cauta']) : '';
 $pret_max = isset($_GET['pret_maxim']) ? intval($_GET['pret_maxim']) : 1000;
 
-// 2. Construim interogarea SQL de bază (plecăm de la o condiție mereu adevărată: 1=1)
-$sql = "SELECT * FROM produse WHERE 1=1";
+// 2. Construim interogarea SQL
+$sql = "SELECT p.*, AVG(r.nota) AS medie_rating, COUNT(r.id) AS nr_reviewuri 
+        FROM produse p 
+        LEFT JOIN reviewuri r ON p.id = r.id_produs";
 
-// 3. Adăugăm filtrul de PREȚ
-$sql .= " AND (pret <= $pret_max OR (pret_discount <= $pret_max AND pret_discount > 0))";
+// 3. Adăugăm clauza WHERE (Toate filtrele trebuie să fie după WHERE și înainte de GROUP BY)
+$sql .= " WHERE (p.pret <= $pret_max OR (p.pret_discount <= $pret_max AND p.pret_discount > 0))";
 
-// 4. Adăugăm filtrul de SEARCH (dacă există) și stabilim TITLUL
+// Extragem primele 3 produse ordonate după media rating-ului
+$sql_top = "SELECT p.*, AVG(r.nota) AS medie_rating 
+            FROM produse p 
+            LEFT JOIN reviewuri r ON p.id = r.id_produs 
+            GROUP BY p.id 
+            ORDER BY medie_rating DESC, p.id ASC 
+            LIMIT 3";
+$res_top = $conn->query($sql_top);
+
+// 4. Adăugăm filtrul de SEARCH
 if (!empty($termen)) {
-    $sql .= " AND (nume_produs LIKE '%$termen%' OR categorie LIKE '%$termen%' OR subcategorie LIKE '%$termen%')";
+    $sql .= " AND (p.nume_produs LIKE '%$termen%' OR p.categorie LIKE '%$termen%' OR p.subcategorie LIKE '%$termen%')";
     $titlu_pagina = "Rezultate căutare: " . htmlspecialchars($termen);
 } else {
     $titlu_pagina = "Toate produsele noastre";
 }
 
-// 5. Executăm interogarea finală
+// 5. Aadăugăm GROUP BY la finalul de tot al interogării
+$sql .= " GROUP BY p.id";
+
+// 6. Executăm interogarea finală
 $result = $conn->query($sql);
+
+if (!$result) {
+    die("Eroare SQL: " . $conn->error); // Ne ajută să vedem dacă avem greșeli de scriere
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -60,9 +78,7 @@ $result = $conn->query($sql);
     <!-- Spinner Start -->
     <div id="spinner"
         class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
-        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-            <span class="sr-only">Loading...</span>
-        </div>
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
     </div>
     <!-- Spinner End -->
 
@@ -153,39 +169,6 @@ $result = $conn->query($sql);
     </div>
     <!-- Services End -->
 
-
-    <!-- Products Offer Start -->
-    <!-- <div class="container-fluid bg-light py-5">
-        <div class="container">
-            <div class="row g-4">
-                <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.2s">
-                    <a href="#" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
-                        <div>
-                            <p class="text-muted mb-3">Find The Best Camera for You!</p>
-                            <h3 class="text-primary">Smart Camera</h3>
-                            <h1 class="display-3 text-secondary mb-0">40% <span
-                                    class="text-primary fw-normal">Off</span></h1>
-                        </div>
-                        <img src="img/product-1.png" class="img-fluid" alt="">
-                    </a>
-                </div>
-                <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
-                    <a href="#" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
-                        <div>
-                            <p class="text-muted mb-3">Find The Best Whatches for You!</p>
-                            <h3 class="text-primary">Smart Whatch</h3>
-                            <h1 class="display-3 text-secondary mb-0">20% <span
-                                    class="text-primary fw-normal">Off</span></h1>
-                        </div>
-                        <img src="img/product-2.png" class="img-fluid" alt="">
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div> -->
-    <!-- Products Offer End -->
-
-
     <!-- Shop Page Start -->
     <div class="container-fluid shop py-5">
         <div class="container py-5">
@@ -236,63 +219,46 @@ $result = $conn->query($sql);
 
                     <div class="featured-product mb-4">
                         <h4 class="mb-3">Top Vânzări</h4>
-                        <div class="featured-product-item">
-                            <div class="rounded me-4" style="width: 100px; height: 100px;">
-                                <img src="../images/product-img/pisici_royalcanin_britsh.webp" class="img-fluid rounded" alt="Image">
-                            </div>
-                            <div>
-                                <h6 class="mb-2">Royal Canin - Hrană uscată British Shorthair Adult</h6>
-                                <div class="d-flex mb-2">
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
+                        <?php 
+                        if ($res_top && $res_top->num_rows > 0) {
+                            while($top = $res_top->fetch_assoc()) { 
+                                $rating_top = ($top['medie_rating'] != null) ? round($top['medie_rating']) : 0;
+                        ?>
+                            <div class="featured-product-item d-flex align-items-center mb-4">
+                                <div class="rounded me-4" style="width: 100px; height: 100px; overflow: hidden;">
+                                    <a href="product-page.php?id=<?php echo $top['id']; ?>">
+                                        <img src="../images/product-img/<?php echo $top['imagine']; ?>" class="img-fluid rounded" style="object-fit: cover; width: 100%; height: 100%;" alt="">
+                                    </a>
                                 </div>
-                                <div class="d-flex mb-2">
-                                    <!-- <h5 class="text-primary text-decoration-line-through">4.11 $</h5> -->
-                                    <h5 class="fw-bold me-2">107,90 lei</h5>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="featured-product-item">
-                            <div class="rounded me-4" style="width: 100px; height: 100px;">
-                                <img src="../images/product-img/caini_wolf_ruby_midnight.webp" class="img-fluid rounded" alt="Image">
-                            </div>
-                            <div>
-                                <h6 class="mb-2">Wolf of Wilderness - Ruby Midnight" Vită & Iepure</h6>
-                                <div class="d-flex mb-2">
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star"></i>
-                                </div>
-                                <div class="d-flex mb-2">
-                                    <!-- <h5 class="text-primary text-decoration-line-through">443,60 lei</h5> -->
-                                    <h5 class="fw-bold me-2">259,90 lei</h5>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="featured-product-item">
-                            <div class="rounded me-4" style="width: 100px; height: 100px;">
-                                <img src="../images/product-img/pisici_hills_prescr_metabolic.webp" class="img-fluid rounded" alt="Image">
-                            </div>
-                            <div>
-                                <h6 class="mb-2">Hill's Prescription Diet - Metabolic Weight Management Pui</h6>
-                                <div class="d-flex mb-2">
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star text-primary"></i>
-                                    <i class="fa fa-star"></i>
-                                </div>
-                                <div class="d-flex mb-2">
-                                    <h5 class="text-primary text-decoration-line-through">492,90 lei</h5>
-                                    <h5 class="fw-bold ms-2">443,60 lei</h5>
+                                <div>
+                                    <h6 class="mb-2">
+                                        <a href="product-page.php?id=<?php echo $top['id']; ?>" class="text-dark text-decoration-none">
+                                            <?php echo $top['nume_produs']; ?>
+                                        </a>
+                                    </h6>
+                                    
+                                    <div class="d-flex mb-2 text-primary">
+                                        <?php 
+                                        for ($i = 1; $i <= 5; $i++) {
+                                            echo ($i <= $rating_top) ? '<i class="fa fa-star"></i>' : '<i class="fa fa-star text-muted"></i>';
+                                        }
+                                        ?>
+                                    </div>
+
+                                    <div class="d-flex align-items-center">
+                                        <?php if(!empty($top['pret_discount']) && $top['pret_discount'] > 0): ?>
+                                            <h5 class="fw-bold mb-0 me-2"><?php echo number_format($top['pret_discount'], 2); ?> lei</h5>
+                                            <small class="text-decoration-line-through text-muted"><?php echo number_format($top['pret'], 2); ?> lei</small>
+                                        <?php else: ?>
+                                            <h5 class="fw-bold mb-0"><?php echo number_format($top['pret'], 2); ?> lei</h5>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        <?php 
+                            } 
+                        } 
+                        ?>
                     </div>
                 </div>
                 <div class="col-lg-9 wow fadeInUp" data-wow-delay="0.1s">
@@ -326,6 +292,9 @@ $result = $conn->query($sql);
                                 <?php 
                                 if ($result->num_rows > 0) {
                                     while($p = $result->fetch_assoc()) { 
+                                        // Pregătim datele de rating
+                                        $rating_mediu = ($p['medie_rating'] != null) ? round($p['medie_rating']) : 0;
+                                        $nr_recenzii = $p['nr_reviewuri'];
                                 ?>
                                     <div class="col-md-6 col-lg-4 mb-4">
                                         <div class="product-item border rounded wow fadeInUp h-100 d-flex flex-column" data-wow-delay="0.1s">
@@ -338,9 +307,7 @@ $result = $conn->query($sql);
                                                     <?php endif; ?>
 
                                                     <?php if(isset($p['este_nou']) && $p['este_nou'] == 1): ?>
-                                                        <div class="product-new bg-primary text-white position-absolute">
-                                                            New
-                                                        </div>
+                                                        <div class="product-new bg-primary text-white position-absolute">New</div>
                                                     <?php endif; ?>
 
                                                     <div class="product-details">
@@ -372,12 +339,29 @@ $result = $conn->query($sql);
                                                     <i class="fas fa-shopping-cart me-2"></i> Adaugă în coș
                                                 </a>
                                             </div>
+
+                                            <div class="d-flex justify-content-center pb-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-2">
+                                                        <?php 
+                                                        for ($i = 1; $i <= 5; $i++) {
+                                                            if ($i <= $rating_mediu) {
+                                                                echo '<i class="fas fa-star text-primary"></i>'; // Stea plină
+                                                            } else {
+                                                                echo '<i class="far fa-star text-muted"></i>'; // Stea goală (far)
+                                                            }
+                                                        }
+                                                        ?>
+                                                    </div>
+                                                    <small class="text-muted">(<?php echo $nr_recenzii; ?>)</small>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 <?php 
                                     } 
                                 } else {
-                                    echo "<div class='col-12'><p class='text-center py-5'>Nu am găsit produse care să corespundă căutării tale.</p></div>";
+                                    echo "<div class='col-12'><p class='text-center py-5'>Nu am găsit produse.</p></div>";
                                 }
                                 ?>
                             </div>
@@ -388,42 +372,6 @@ $result = $conn->query($sql);
         </div>
     </div>
     <!-- Shop Page End -->
-
-    <!-- Product Banner Start -->
-    <!-- <div class="container-fluid py-5">
-        <div class="container pb-5">
-            <div class="row g-4">
-                <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
-                    <a href="#">
-                        <div class="bg-primary rounded position-relative">
-                            <img src="img/product-banner.jpg" class="img-fluid w-100 rounded" alt="">
-                            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4"
-                                style="background: rgba(255, 255, 255, 0.5);">
-                                <h3 class="display-5 text-primary">EOS Rebel <br> <span>T7i Kit</span></h3>
-                                <p class="fs-4 text-muted">$899.99</p>
-                                <a href="#" class="btn btn-primary rounded-pill align-self-start py-2 px-4">Shop Now</a>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.2s">
-                    <a href="#">
-                        <div class="text-center bg-primary rounded position-relative">
-                            <img src="img/product-banner-2.jpg" class="img-fluid w-100" alt="">
-                            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4"
-                                style="background: rgba(242, 139, 0, 0.5);">
-                                <h2 class="display-2 text-secondary">SALE</h2>
-                                <h4 class="display-5 text-white mb-4">Get UP To 50% Off</h4>
-                                <a href="#" class="btn btn-secondary rounded-pill align-self-center py-2 px-4">Shop
-                                    Now</a>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div> -->
-    <!-- Product Banner End -->
 
     <!-- Footer Start -->
     <?php include 'footer.php'; ?>

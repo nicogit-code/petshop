@@ -52,152 +52,16 @@ $res_top = $conn->query("SELECT * FROM produse WHERE stoc < 15 LIMIT 8");
     <!-- Spinner Start -->
     <div id="spinner"
         class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
-        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-            <span class="sr-only">Loading...</span>
-        </div>
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
     </div>
     <!-- Spinner End -->
 
-
-    <!-- Topbar Start -->
-    <!-- <div class="container-fluid px-5 py-4 d-none d-lg-block">
-        <div class="row gx-0 align-items-center text-center">
-            <div class="col-md-4 col-lg-3 text-center text-lg-start">
-                <div class="d-inline-flex align-items-center">
-                    <a href="" class="navbar-brand p-0">
-                        <img src="assets/images/logo_transp.png" alt="Logo" style="width: 250px;">
-                    </a>
-                </div>
-            </div>
-            <div class="col-md-4 col-lg-6 text-center">
-                <div class="position-relative ps-4">
-                    <div class="d-flex border rounded-pill">
-                        <input class="form-control border-0 rounded-pill w-100 py-3" type="text"
-                            data-bs-target="#dropdownToggle123" placeholder="Search Looking For?">
-                        <button type="button" class="btn btn-primary rounded-pill py-3 px-5" style="border: 0;"><i
-                                class="fas fa-search"></i></button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 col-lg-3 text-center text-lg-end">
-                <div class="d-inline-flex align-items-center">
-                    <a href="#" class="text-muted d-flex align-items-center justify-content-center me-3"><span
-                            class="rounded-circle btn-md-square border"><i class="fas fa-random"></i></i></a>
-                    <a href="#" class="text-muted d-flex align-items-center justify-content-center me-3"><span
-                            class="rounded-circle btn-md-square border"><i class="fas fa-heart"></i></a>
-                    <a href="#" class="text-muted d-flex align-items-center justify-content-center"><span
-                            class="rounded-circle btn-md-square border"><i class="fas fa-shopping-cart"></i></span>
-                        <span class="text-dark ms-2">$0.00</span></a>
-                </div>
-            </div>
-        </div>
-    </div> -->
-    <!-- Topbar End -->
-
-    <!-- Navbar & Hero Start -->
-    <!-- <div class="container-fluid nav-bar p-0">
-        <div class="row gx-0 bg-primary px-5 align-items-center">
-            <div class="col-lg-3 d-none d-lg-block">
-                <nav class="navbar navbar-light position-relative" style="width: 250px;">
-                    <button class="navbar-toggler border-0 fs-4 w-100 px-0 text-start" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#allCat">
-                        <h4 class="m-0 text-white"><i class="fa fa-bars me-2"></i>Categorii</h4>
-                    </button>
-                    <div class="collapse navbar-collapse rounded-bottom" id="allCat">
-                        <div class="navbar-nav ms-auto py-0">
-                            <ul class="list-unstyled categories-bars">
-                                <li>
-                                    <div class="categories-bars-item">
-                                        <a href="#">Pisici</a>
-                                        <span>(3)</span>
-                                    </div>
-                                </li>
-                                <li>
-                                    <div class="categories-bars-item">
-                                        <a href="#">Câini</a>
-                                        <span>(5)</span>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </nav>
-            </div>
-
-            <div class="col-12 col-lg-9">
-                <nav class="navbar navbar-expand-lg navbar-light bg-primary ">
-                    <a href="#" class="navbar-brand d-flex justify-content-between align-items-center d-lg-none">
-                        <img src="assets/images/logo_transp.png" alt="Logo" style="width: 250px;">
-                    </a>
-                    <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-                        <span class="fa fa-bars fa-1x"></span>
-                    </button>
-                    <div class="collapse navbar-collapse" id="navbarCollapse">
-                        <div class="navbar-nav ms-auto py-0">
-                            <a href="index.html" class="nav-item nav-link active">Home</a>
-                            <a href="assets/php/products-page.php" class="nav-item nav-link">Pisici</a>
-                            <a href="assets/php/product-page.php" class="nav-item nav-link">Pagina Produs</a>
-                            <div class="nav-item dropdown">
-                                <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Pages</a>
-                                <div class="dropdown-menu m-0">
-                                    <a href="bestseller.html" class="dropdown-item">Bestseller</a>
-                                    <a href="cart.html" class="dropdown-item">Cart Page</a>
-                                    <a href="cheackout.html" class="dropdown-item">Cheackout</a>
-                                    <a href="404.html" class="dropdown-item">404 Page</a>
-                                </div>
-                            </div>
-                            <a href="contact.html" class="nav-item nav-link me-2">Contact</a>
-                            
-                            <div class="nav-item dropdown d-block d-lg-none mb-3">
-                                <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">All Category</a>
-                                <div class="dropdown-menu m-0">
-                                    <ul class="list-unstyled categories-bars">
-                                        <li>
-                                            <div class="categories-bars-item">
-                                                <a href="#">Accessories</a>
-                                                <span>(3)</span>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="categories-bars-item">
-                                                <a href="#">Electronics & Computer</a>
-                                                <span>(5)</span>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="categories-bars-item">
-                                                <a href="#">Laptops & Desktops</a>
-                                                <span>(2)</span>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="categories-bars-item">
-                                                <a href="#">Mobiles & Tablets</a>
-                                                <span>(8)</span>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="categories-bars-item">
-                                                <a href="#">SmartPhone & Smart TV</a>
-                                                <span>(5)</span>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <a href="" class="btn btn-secondary rounded-pill py-2 px-4 px-lg-3 mb-3 mb-md-3 mb-lg-0"><i
-                                class="fa fa-mobile-alt me-2"></i> +40 743 456 789</a>
-                    </div>
-                </nav>
-            </div>
-        </div>
-    </div> -->
+    <!-- Navbar & Hero -->
     <?php include 'assets/php/navbar.php'; ?>
     <!-- Navbar & Hero End -->
 
     <!-- Carousel Start -->
-    <div class="container-fluid carousel bg-light px-0">
+    <div class="container-fluid carousel bg-white px-0">
         <div class="row g-0 justify-content-end">
             <div class="col-12 col-lg-7">
                 <div class="header-carousel owl-carousel bg-white p-4 h-100">
@@ -205,60 +69,23 @@ $res_top = $conn->query("SELECT * FROM produse WHERE stoc < 15 LIMIT 8");
                         <div class="col-xl-12 carousel-img wow fadeInLeft" data-wow-delay="0.1s">
                             <img src="assets/images/hero/3.png" class="img-fluid w-100 rounded-4" alt="Image">
                         </div>
-                        <!-- <div class="col-xl-6 carousel-content p-4">
-                            <h4 class="text-uppercase fw-bold mb-4 wow fadeInRight" data-wow-delay="0.1s"
-                                style="letter-spacing: 3px;">Save Up To A $400</h4>
-                            <h1 class="display-3 text-capitalize mb-4 wow fadeInRight" data-wow-delay="0.3s">On Selected
-                                Laptops & Desktop Or Smartphone</h1>
-                            <p class="text-dark wow fadeInRight" data-wow-delay="0.5s">Terms and Condition Apply</p>
-                            <a class="btn btn-primary rounded-pill py-3 px-5 wow fadeInRight" data-wow-delay="0.7s"
-                                href="#">Shop Now</a>
-                        </div> -->
                     </div>
                     <div class="row g-0 header-carousel-item align-items-center">
                         <div class="col-xl-12 carousel-img wow fadeInLeft" data-wow-delay="0.1s">
                             <img src="assets/images/hero/2.png" class="img-fluid w-100 rounded-4" alt="Image">
                         </div>
-                        <!-- <div class="col-xl-6 carousel-content p-4">
-                            <h4 class="text-uppercase fw-bold mb-4 wow fadeInRight" data-wow-delay="0.1s"
-                                style="letter-spacing: 3px;">Save Up To A $200</h4>
-                            <h1 class="display-3 text-capitalize mb-4 wow fadeInRight" data-wow-delay="0.3s">On Selected
-                                Laptops & Desktop Or Smartphone</h1>
-                            <p class="text-dark wow fadeInRight" data-wow-delay="0.5s">Terms and Condition Apply</p>
-                            <a class="btn btn-primary rounded-pill py-3 px-5 wow fadeInRight" data-wow-delay="0.7s"
-                                href="#">Shop Now</a>
-                        </div> -->
                     </div>
                     <div class="row g-0 header-carousel-item align-items-center">
                         <div class="col-xl-12 carousel-img wow fadeInLeft" data-wow-delay="0.1s">
                             <img src="assets/images/hero/1.png" class="img-fluid w-100 rounded-4" alt="Image">
                         </div>
-                        <!-- <div class="col-xl-6 carousel-content p-4">
-                            <h4 class="text-uppercase fw-bold mb-4 wow fadeInRight" data-wow-delay="0.1s"
-                                style="letter-spacing: 3px;">Save Up To A $200</h4>
-                            <h1 class="display-3 text-capitalize mb-4 wow fadeInRight" data-wow-delay="0.3s">On Selected
-                                Laptops & Desktop Or Smartphone</h1>
-                            <p class="text-dark wow fadeInRight" data-wow-delay="0.5s">Terms and Condition Apply</p>
-                            <a class="btn btn-primary rounded-pill py-3 px-5 wow fadeInRight" data-wow-delay="0.7s"
-                                href="#">Shop Now</a>
-                        </div> -->
                     </div>
                 </div>
             </div>
             <div class="col-12 col-lg-5 wow fadeInRight" data-wow-delay="0.1s">
                 <div class="carousel-header-banner bg-white h-100 pt-5 pt-lg-4">
                     <img src="assets/images/hero/4.png" class="img-fluid w-100 h-100" style="object-fit: cover;" alt="Image">
-                    <!-- <div class="carousel-banner-offer">
-                        <p class="bg-primary text-white rounded fs-5 py-2 px-4 mb-0 me-3">Save $48.00</p>
-                        <p class="text-primary fs-5 fw-bold mb-0">Special Offer</p>
-                    </div> -->
                     <div class="carousel-banner">
-                        <!-- <div class="carousel-banner-content text-center p-4">
-                            <a href="#" class="d-block mb-2">SmartPhone</a>
-                            <a href="#" class="d-block text-white fs-3">Apple iPad Mini <br> G2356</a>
-                            <del class="me-2 text-white fs-5">$1,250.00</del>
-                            <span class="text-primary fs-5">$1,050.00</span>
-                        </div> -->
                         <a href="#" class="btn btn-primary rounded-pill py-2 px-4">
                             <i class="fas fa-shopping-cart me-2"></i> Află mai multe
                         </a>
@@ -436,8 +263,18 @@ $res_top = $conn->query("SELECT * FROM produse WHERE stoc < 15 LIMIT 8");
                                             </div>
                                         </div>
                                         <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=1" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3"><i class="fas fa-shopping-cart me-2"></i> Adaugă</a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
+                                            <a href="assets/php/adauga-in-cos.php?id=1" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
+                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
+                                            </a>
+                                            <div class="d-flex justify-content-center">
+                                                <div class="d-flex">
+                                                    <i class="fas fa-star text-primary"></i>
+                                                    <i class="fas fa-star text-primary"></i>
+                                                    <i class="fas fa-star text-primary"></i>
+                                                    <i class="fas fa-star text-primary"></i>
+                                                    <i class="fas fa-star text-primary"></i>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

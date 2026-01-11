@@ -1,17 +1,18 @@
 <?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 include 'config.php'; 
 
 $id_produs = isset($_GET['id']) ? intval($_GET['id']) : 1;
 
-// 1. Luăm produsul
+// 1. Luam produsul
 $sql = "SELECT * FROM produse WHERE id = $id_produs";
 $result = $conn->query($sql);
 
 if ($result && $result->num_rows > 0) {
     $p = $result->fetch_assoc();
     
-    // 2. Acum că știm categoria produsului ($p['categorie']), 
-    // luăm datele de header din tabelul 'categorii'
+    // 2. Luam datele de header din tabelul 'categorii'
     $cat_nume = $p['categorie'];
     $sql_cat = "SELECT * FROM categorii WHERE nume_categorie = '$cat_nume'";
     $res_cat = $conn->query($sql_cat);
@@ -21,6 +22,15 @@ if ($result && $result->num_rows > 0) {
     echo "Produsul nu a fost găsit!";
     exit;
 }
+
+
+// Media notelor si numărul de recenzii pentru acest produs
+$sql_rating = "SELECT AVG(nota) as medie, COUNT(id) as total FROM reviewuri WHERE id_produs = " . intval($id_produs);
+$res_rating = $conn->query($sql_rating);
+$rating_data = $res_rating->fetch_assoc();
+
+$medie_produs = ($rating_data['medie'] != null) ? round($rating_data['medie']) : 0;
+$total_recenzii = $rating_data['total'];
 
 // Related products - extragere produse similare
 $categorie_similara = $p['categorie'];
@@ -73,8 +83,7 @@ $res_related = $conn->query($sql_related);
         <!-- Spinner Start -->
         <div id="spinner"
             class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
-            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-            </div>
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
         </div>
         <!-- Spinner End -->
 
@@ -140,13 +149,22 @@ $res_related = $conn->query($sql_related);
                                         <?php echo number_format($p['pret'], 2); ?> lei
                                     <?php endif; ?>
                                 </h5>
+
                                 <div class="d-flex mb-4">
-                                    <i class="fa fa-star"></i>
-                                    <i class="fa fa-star"></i>
-                                    <i class="fa fa-star"></i>
-                                    <i class="fa fa-star"></i>
-                                    <i class="fa fa-star"></i>
+                                    <div class="text-primary me-2">
+                                        <?php 
+                                        for ($i = 1; $i <= 5; $i++) {
+                                            if ($i <= $medie_produs) {
+                                                echo '<i class="fa fa-star text-primary"></i>';
+                                            } else {
+                                                echo '<i class="fa fa-star text-muted"></i>';
+                                            }
+                                        }
+                                        ?>
+                                    </div>
+                                    <span class="text-muted">(<?php echo $total_recenzii; ?> recenzii)</span>
                                 </div>
+
                                 <div class="mb-3">
                                     <div class="btn btn-primary d-inline-block rounded text-white py-1 px-4 me-2"><i
                                             class="fab fa-facebook-f me-1"></i> Share</div>
@@ -175,6 +193,7 @@ $res_related = $conn->query($sql_related);
                                 <a href="<?php echo BASE_URL; ?>assets/php/adauga-in-cos.php?id=<?php echo $p['id']; ?>" class="btn btn-primary border-secondary rounded-pill py-2 px-4 mb-4">
                                     <i class="fas fa-shopping-cart me-2"></i> Adaugă în coș
                                 </a>
+
                             </div>
 
                             <div class="col-lg-12">
@@ -223,62 +242,115 @@ $res_related = $conn->query($sql_related);
 
                                     <div class="tab-pane fade" id="tab-review" role="tabpanel">
                                         <div class="py-4">
+                                            <?php if(isset($_GET['success']) && $_GET['success'] == 1): ?>
+                                                <div id="success-alert" class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                                                    <strong>Succes!</strong> Recenzia ta a fost adăugată. Îți mulțumim pentru feedback!
+                                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                                </div>
+
+                                                <script>
+                                                    setTimeout(function() {
+                                                        let alert = document.getElementById('success-alert');
+                                                        if(alert) {
+                                                            let bsAlert = new bootstrap.Alert(alert);
+                                                            bsAlert.close();
+                                                        }
+                                                    }, 5000);
+                                                </script>
+                                            <?php endif; ?>
+
                                             <div id="lista-reviewuri">
                                                 <?php
-                                                // Citim review-urile din baza de date folosind variabila $id_produs de sus
-                                                $sql_rev = "SELECT * FROM reviewuri WHERE id_produs = $id_produs ORDER BY id DESC";
+                                                // Folosim alias-uri (r. și u.) pentru a evita ambiguitatea coloanei 'id'
+                                                $sql_rev = "SELECT r.nota, r.comentariu, r.data_adaugare, u.username AS nume_utilizator 
+                                                            FROM reviewuri r 
+                                                            JOIN utilizatori u ON r.id_utilizator = u.id 
+                                                            WHERE r.id_produs = " . intval($id_produs) . " 
+                                                            ORDER BY r.data_adaugare DESC";
+                                                
                                                 $res_rev = $conn->query($sql_rev);
 
                                                 if ($res_rev && $res_rev->num_rows > 0) {
                                                     while($rev = $res_rev->fetch_assoc()) {
                                                         ?>
                                                         <div class="d-flex mb-4 border-bottom pb-3">
-                                                            <img src="<?php echo BASE_URL; ?>assets/images/avatar.png" class="img-fluid rounded-circle p-3"
+                                                            <div class="flex-shrink-0">
+                                                                <img src="<?php echo BASE_URL; ?>assets/images/avatar.png" class="img-fluid rounded-circle p-3"
                                                                 style="width: 100px; height: 100px;" alt="Avatar">
+                                                            </div>
                                                             <div class="ms-3">
-                                                                <p class="mb-1" style="font-size: 13px; color: #888;">
-                                                                    <?php 
-                                                                        if(isset($rev['data_postarii'])) {
-                                                                            echo date('d M, Y', strtotime($rev['data_postarii'])); 
-                                                                        } else {
-                                                                            echo date('d M, Y'); // Afişează data de azi dacă în DB e gol
-                                                                        }
-                                                                    ?>
+                                                                <p class="mb-0" style="font-size: 12px; color: #888;">
+                                                                    <?php echo date('d.m.Y', strtotime($rev['data_adaugare'])); ?>
                                                                 </p>
-                                                                <h5 class="mb-2"><?php echo htmlspecialchars($rev['nume_utilizator']); ?></h5>
-                                                                <p class="text-dark"><?php echo htmlspecialchars($rev['comentariu']); ?></p>
+                                                                <h6 class="mb-1 fw-bold"><?php echo htmlspecialchars($rev['nume_utilizator']); ?></h6>
+                                                                
+                                                                <div class="text-warning mb-2" style="font-size: 14px;">
+                                                                    <?php 
+                                                                    for ($i = 1; $i <= 5; $i++) {
+                                                                        if ($i <= $rev['nota']) {
+                                                                            echo '<i class="bi bi-star-fill"></i>';
+                                                                        } else {
+                                                                            echo '<i class="bi bi-star"></i>';
+                                                                        }
+                                                                    }
+                                                                    ?>
+                                                                </div>
+                                                                
+                                                                <p class="text-dark mb-0"><?php echo htmlspecialchars($rev['comentariu']); ?></p>
                                                             </div>
                                                         </div>
                                                         <?php
                                                     }
                                                 } else {
-                                                    echo "<p class='py-4'>Nu sunt review-uri încă. Fii primul care scrie unul!</p>";
+                                                    echo "<p class='text-muted italic py-3'>Încă nu sunt recenzii pentru acest produs.</p>";
                                                 }
                                                 ?>
                                             </div>
 
-                                            <form action="proceseaza_review.php" method="POST" class="mt-5 border-top pt-4">
-                                                <h4 class="mb-4 fw-bold">Lasă un review</h4>
-                                                <input type="hidden" name="id_produs" value="<?php echo $id_produs; ?>">
+                                            <hr class="my-5">
+
+                                            <?php if(isset($_SESSION['user_id'])): ?>
+                                                <?php
+                                                // Se verifica daca utilizatorul curent a lasat deja un review pentru acest produs
+                                                $id_user_check = $_SESSION['user_id'];
+                                                $sql_check = "SELECT id FROM reviewuri WHERE id_produs = $id_produs AND id_utilizator = $id_user_check LIMIT 1";
+                                                $res_check = $conn->query($sql_check);
                                                 
-                                                <div class="row g-4">
-                                                    <div class="col-lg-6">
-                                                        <div class="border-bottom rounded">
-                                                            <input type="text" name="nume_utilizator" class="form-control border-0" placeholder="Numele tău *" required>
+                                                if ($res_check && $res_check->num_rows > 0): 
+                                                ?>
+                                                    <div class="alert alert-light border rounded p-4 text-center mt-5">
+                                                        <i class="bi bi-patch-check text-success fs-2"></i>
+                                                        <h5 class="mt-2">Mulțumim pentru recenzie!</h5>
+                                                        <p class="text-muted mb-0">Ai lăsat deja o părere despre acest produs.</p>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <form action="proceseaza_review.php" method="POST" class="mt-5 border-top pt-4">
+                                                        <h4 class="mb-4 fw-bold">Lasă un review</h4>
+                                                        <input type="hidden" name="id_produs" value="<?php echo $id_produs; ?>">
+                                                        
+                                                        <div class="row g-4">
+                                                            <div class="col-lg-6">
+                                                                <label class="form-label fw-bold">Nota ta:</label>
+                                                                <select name="nota" class="form-select" required>
+                                                                    <option value="5">5 Stele</option>
+                                                                    <option value="4">4 Stele</option>
+                                                                    <option value="3">3 Stele</option>
+                                                                    <option value="2">2 Stele</option>
+                                                                    <option value="1">1 Stea</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-lg-12">
+                                                                <textarea name="comentariu" class="form-control" rows="3" placeholder="Review-ul tău *" required></textarea>
+                                                            </div>
+                                                            <div class="col-lg-12">
+                                                                <button type="submit" class="btn btn-primary rounded-pill px-4 py-2">Postează</button>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-lg-12">
-                                                        <div class="border-bottom rounded my-4">
-                                                            <textarea name="comentariu" class="form-control border-0" cols="30" rows="3" placeholder="Review-ul tău *" required></textarea>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-lg-12">
-                                                        <button type="submit" class="btn btn-primary border border-secondary text-primary rounded-pill px-4 py-3">
-                                                            Postează Review
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </form>
+                                                    </form>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <div class="alert alert-info mt-4">Trebuie să fii logat pentru a lăsa un review.</div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>

@@ -1,34 +1,57 @@
 <?php 
 include 'config.php'; 
 
-// 1. Stabilim categoria
+// 1. Stabilim categoria (Asigură-te că în pisici.php schimbi în 'Pisici')
 $categorie_curenta = 'Caini'; 
 
-// 2. Luăm datele pentru header (pentru a nu avea erori la banner)
+// 2. Luăm datele pentru header (Bannere, titluri)
 $res_cat = $conn->query("SELECT * FROM categorii WHERE nume_categorie = '$categorie_curenta'");
 $cat = $res_cat->fetch_assoc();
 
-// 3. DEFINIM VARIABILA $result (Aici este cheia!)
-$sql = "SELECT * FROM produse WHERE categorie = '$categorie_curenta'";
+// 3. LOGICA PENTRU FILTRARE PREȚ (Preluăm valorile din URL/GET)
+$min_price = isset($_GET['min_price']) ? intval($_GET['min_price']) : 0;
+$max_price = isset($_GET['max_price']) ? intval($_GET['max_price']) : 1000;
+
+// 4. INTEROGAREA PRINCIPALĂ (Produse + Rating + Filtru Preț)
+// Folosim COALESCE pentru a verifica prețul de discount, iar dacă e NULL, folosim prețul normal
+$sql = "SELECT p.*, AVG(r.nota) AS medie_rating, COUNT(r.id) AS nr_reviewuri 
+        FROM produse p 
+        LEFT JOIN reviewuri r ON p.id = r.id_produs 
+        WHERE p.categorie = '$categorie_curenta' 
+        AND (
+            CASE 
+                WHEN p.pret_discount > 0 THEN p.pret_discount 
+                ELSE p.pret 
+            END BETWEEN $min_price AND $max_price
+        )
+        GROUP BY p.id";
+        
 $result = $conn->query($sql); 
 
-// Verificăm dacă interogarea a eșuat (pentru siguranță)
 if (!$result) {
     die("Eroare la interogare: " . $conn->error);
 }
 
-// Funcție pentru a număra produsele dintr-o subcategorie specifică
+// 5. FUNCȚIE PENTRU SIDEBAR (Numărare produse pe subcategorii)
 function numaraProduse($conn, $categorie, $subcategorie) {
     $sql = "SELECT COUNT(*) as total FROM produse WHERE categorie = '$categorie' AND subcategorie = '$subcategorie'";
     $res = $conn->query($sql);
-    $data = $res->fetch_assoc();
-    return $data['total'];
+    if ($res) {
+        $data = $res->fetch_assoc();
+        return $data['total'];
+    }
+    return 0;
 }
 
-// Extragem 3 produse din categoria curentă pentru sidebar
-// Folosim ORDER BY RAND() pentru a varia produsele sau ORDER BY id DESC pentru cele mai noi
-$sql_featured = "SELECT * FROM produse WHERE categorie = '$categorie_curenta' LIMIT 3";
-$res_featured = $conn->query($sql_featured);
+// 6. EXTRAGEM TOP 3 VÂNZĂRI (Din categoria curentă, după rating)
+$sql_top = "SELECT p.*, AVG(r.nota) AS medie_rating 
+            FROM produse p 
+            LEFT JOIN reviewuri r ON p.id = r.id_produs 
+            WHERE p.categorie = '$categorie_curenta'
+            GROUP BY p.id 
+            ORDER BY medie_rating DESC, p.id ASC 
+            LIMIT 3";
+$res_top = $conn->query($sql_top);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -196,57 +219,74 @@ $res_featured = $conn->query($sql_featured);
                         </div>
 
                         <div class="price mb-4">
-                            <h4 class="mb-2">Preț</h4>
-                            <input type="range" class="form-range w-100" id="rangeInput" name="rangeInput" min="0" max="3000"
-                                value="0" oninput="amount.value=rangeInput.value">
-                            <output id="amount" name="amount" min-velue="0" max-value="500" for="rangeInput">0</output>
-                            <div class=""></div>
+                            <h4 class="mb-2">Filtrează după preț</h4>
+                            
+                            <form action="" method="GET">
+                                <input type="range" class="form-range w-100" id="rangeInput" name="max_price" 
+                                    min="0" max="1000" 
+                                    value="<?php echo isset($_GET['max_price']) ? $_GET['max_price'] : 1000; ?>" 
+                                    oninput="amount.value=rangeInput.value">
+                                
+                                <div class="d-flex justify-content-between">
+                                    <span>0 lei</span>
+                                    <output id="amount" name="amount" for="rangeInput">
+                                        <?php echo isset($_GET['max_price']) ? $_GET['max_price'] : 0; ?>
+                                    </output>
+                                    <span>1000 lei</span>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-sm w-100 mt-2 rounded-pill">
+                                    Aplică filtrul
+                                </button>
+                                
+                                <?php if(isset($_GET['max_price'])): ?>
+                                    <a href="?" class="d-block text-center small mt-2 text-muted">Resetează</a>
+                                <?php endif; ?>
+                            </form>
                         </div>
 
                         <div class="featured-product mb-4">
-                            <h4 class="mb-3">Top Vânzări <?php echo $categorie_curenta; ?></h4>
-                            
+                            <h4 class="mb-3">Top Vânzări</h4>
                             <?php 
-                            if ($res_featured->num_rows > 0):
-                                while($f = $res_featured->fetch_assoc()): 
+                            if ($res_top && $res_top->num_rows > 0) {
+                                while($top = $res_top->fetch_assoc()) { 
+                                    $rating_top = ($top['medie_rating'] != null) ? round($top['medie_rating']) : 0;
                             ?>
                                 <div class="featured-product-item d-flex align-items-center mb-4">
-                                    <div class="rounded me-4" style="width: 100px; height: 100px; flex-shrink: 0;">
-                                        <img src="../images/product-img/<?php echo $f['imagine']; ?>" class="img-fluid rounded" alt="<?php echo $f['nume_produs']; ?>">
+                                    <div class="rounded me-4" style="width: 100px; height: 100px; overflow: hidden;">
+                                        <a href="product-page.php?id=<?php echo $top['id']; ?>">
+                                            <img src="../images/product-img/<?php echo $top['imagine']; ?>" class="img-fluid rounded" style="object-fit: cover; width: 100%; height: 100%;" alt="">
+                                        </a>
                                     </div>
                                     <div>
                                         <h6 class="mb-2">
-                                            <a href="product-page.php?id=<?php echo $f['id']; ?>" class="text-dark">
-                                                <?php echo $f['nume_produs']; ?>
+                                            <a href="product-page.php?id=<?php echo $top['id']; ?>" class="text-dark text-decoration-none">
+                                                <?php echo $top['nume_produs']; ?>
                                             </a>
                                         </h6>
-                                        <div class="d-flex mb-2">
-                                            <i class="fa fa-star text-primary small"></i>
-                                            <i class="fa fa-star text-primary small"></i>
-                                            <i class="fa fa-star text-primary small"></i>
-                                            <i class="fa fa-star text-primary small"></i>
-                                            <i class="fa fa-star text-primary small"></i>
+                                        
+                                        <div class="d-flex mb-2 text-primary">
+                                            <?php 
+                                            for ($i = 1; $i <= 5; $i++) {
+                                                echo ($i <= $rating_top) ? '<i class="fa fa-star"></i>' : '<i class="fa fa-star text-muted"></i>';
+                                            }
+                                            ?>
                                         </div>
-                                        <div class="d-flex mb-2">
-                                            <?php if(!empty($f['pret_discount'])): ?>
-                                                <h5 class="text-primary text-decoration-line-through small me-2"><?php echo $f['pret']; ?> lei</h5>
-                                                <h5 class="fw-bold"><?php echo $f['pret_discount']; ?> lei</h5>
+
+                                        <div class="d-flex align-items-center">
+                                            <?php if(!empty($top['pret_discount']) && $top['pret_discount'] > 0): ?>
+                                                <h5 class="fw-bold mb-0 me-2"><?php echo number_format($top['pret_discount'], 2); ?> lei</h5>
+                                                <small class="text-decoration-line-through text-muted"><?php echo number_format($top['pret'], 2); ?> lei</small>
                                             <?php else: ?>
-                                                <h5 class="fw-bold"><?php echo $f['pret']; ?> lei</h5>
+                                                <h5 class="fw-bold mb-0"><?php echo number_format($top['pret'], 2); ?> lei</h5>
                                             <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
                             <?php 
-                                endwhile; 
-                            else:
-                                echo "<p class='small text-muted'>Nu există recomandări.</p>";
-                            endif;
+                                } 
+                            } 
                             ?>
-
-                            <div class="d-flex justify-content-center my-4">
-                                <a href="?subcat=" class="btn btn-primary px-4 py-3 rounded-pill w-100 text-white">Vezi toate</a>
-                            </div>
                         </div>
 
                     </div>
@@ -277,6 +317,7 @@ $res_featured = $conn->query($sql_featured);
 
                         <div class="tab-content pt-4">
                             <div id="tab-5" class="tab-pane fade show p-0 active">
+
                                 <div class="row g-4 product">
                                     <?php 
                                     if ($result && $result->num_rows > 0) {
@@ -300,7 +341,8 @@ $res_featured = $conn->query($sql_featured);
                                             <div class="text-center p-4 flex-grow-1 d-flex flex-column">
                                                 <a href="#" class="d-block mb-2 text-muted"><?php echo $p['categorie']; ?></a>
                                                 <a href="product-page.php?id=<?php echo $p['id']; ?>" class="d-block h4"><?php echo $p['nume_produs']; ?></a>
-                                                <p class="mt-auto mb-2"><?php echo $p['cantitate']; ?> Kg</p> <div class="mb-3">
+                                                <p class="mt-auto mb-2"><?php echo $p['cantitate']; ?> Kg</p> 
+                                                <div class="">
                                                     <?php if(!empty($p['pret_discount'])): ?>
                                                         <del class="me-2 text-muted"><?php echo number_format($p['pret'], 2); ?> lei</del>
                                                         <span class="text-primary fw-bold fs-5"><?php echo number_format($p['pret_discount'], 2); ?> lei</span>
@@ -316,6 +358,24 @@ $res_featured = $conn->query($sql_featured);
                                                     <i class="fas fa-shopping-cart me-2"></i> Adaugă în coș
                                                 </a>
                                             </div>
+
+                                            <div class="d-flex justify-content-center pb-4">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="text-primary me-2">
+                                                        <?php 
+                                                        $rating_final = ($p['medie_rating'] != null) ? round($p['medie_rating']) : 0;
+                                                        for ($i = 1; $i <= 5; $i++) {
+                                                            if ($i <= $rating_final) {
+                                                                echo '<i class="fas fa-star"></i>';
+                                                            } else {
+                                                                echo '<i class="far fa-star text-muted"></i>';
+                                                            }
+                                                        }
+                                                        ?>
+                                                    </div>
+                                                    <small class="text-muted">(<?php echo $p['nr_reviewuri']; ?>)</small>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <?php 
@@ -325,6 +385,7 @@ $res_featured = $conn->query($sql_featured);
                                     }
                                     ?>
                                 </div>
+
                             </div>
                         </div>
                     </div>

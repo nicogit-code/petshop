@@ -284,6 +284,10 @@
     position: relative;
 }
 
+.carousel .carousel-header-banner img {
+    border-radius: 16px 0 0 16px;
+}
+
 .carousel .carousel-banner-offer {
     position: absolute;
     top: 20px; 

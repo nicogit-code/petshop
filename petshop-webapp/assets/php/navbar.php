@@ -11,7 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
         <div class="col-md-4 col-lg-3 text-center text-lg-start d-none d-lg-block">
             <div class="d-inline-flex align-items-center">
-                <a href="" class="navbar-brand p-0">
+                <a href="<?php echo BASE_URL; ?>index.php" class="navbar-brand p-0">
                     <img src="<?php echo BASE_URL; ?>assets/images/logo_transp.png" alt="Logo" style="width: 230px;">
                 </a>
             </div>
@@ -93,7 +93,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 <!-- Topbar Start -->
 <div class="container-fluid px-5 py-4">
-    <div class="row gx-0 align-items-center text-center">
+    <div class="row gx-0 align-items-center text-center justify-content-between">
 
         <div class="col-md-4 col-lg-3 d-none d-lg-block">
             <nav class="navbar navbar-light position-relative" style="width: 250px;">
@@ -122,8 +122,8 @@ if (session_status() === PHP_SESSION_NONE) {
             </nav>
         </div>
 
-        <div class="col-md-4 col-lg-6 text-center">
-            <div class="position-relative ps-4">
+        <div class="col-md-4 col-lg-6 order-3 order-lg-2 pt-2 pt-md-0 text-center">
+            <div class="position-relative ps-md-4">
                 <form action="<?php echo BASE_URL; ?>assets/php/products-page.php" method="GET" class="d-flex">
                     <div class="input-group">
                         <input type="search" name="cauta" class="form-control" placeholder="Caută un produs..." aria-label="Cauta in tot site-ul">
@@ -135,7 +135,7 @@ if (session_status() === PHP_SESSION_NONE) {
             </div>
         </div>
 
-        <div class="col-md-4 col-lg-3 text-center text-lg-end">
+        <div class="col-md-6 col-lg-3 order-lg-3 text-center text-lg-end">
             <div class="d-inline-flex align-items-center">
                 <ul class="navbar-nav d-flex flex-row me-3">
                     <?php if (isset($_SESSION['username'])): ?>
@@ -155,7 +155,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     <?php endif; ?>
                 </ul>
 
-                <a href="<?php echo BASE_URL; ?>assets/php/cos-cumparaturi.php" class="position-relative me-4 my-auto">
+                <a href="<?php echo BASE_URL; ?>assets/php/cos-cumparaturi.php" class="position-relative ms-4 me-0 me-md-4 my-auto">
                     <i class="fa fa-shopping-bag fa-2x"></i>
                     <span class="position-absolute bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white px-1" 
                         style="top: -5px; left: 15px; height: 20px; min-width: 20px;">
