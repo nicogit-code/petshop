@@ -42,7 +42,7 @@
                     </div>
 
                     <div class="row g-5">
-                        <div class="col-md-6 col-lg-4">
+                        <div class="col-12 col-lg-6">
                             <div class="footer-item d-flex flex-column">
                                 <div class="footer-item">
                                     <h4 class="text-primary mb-4">Newsletter</h4>
@@ -56,7 +56,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6 col-lg-4">
+                        <div class="col-md-6 col-lg-3">
                             <div class="footer-item d-flex flex-column">
                                 <h4 class="text-primary mb-4">Servicii clienți</h4>
                                 <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Contact</a>
@@ -66,7 +66,7 @@
                                 <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Contul tău Ani-Mate</a>
                             </div>
                         </div>
-                        <div class="col-md-6 col-lg-4">
+                        <div class="col-md-6 col-lg-3">
                             <div class="footer-item d-flex flex-column">
                                 <h4 class="text-primary mb-4">Informații</h4>
                                 <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Despre noi</a>
@@ -87,15 +87,11 @@
             <div class="container">
                 <div class="row g-4 align-items-center">
                     <div class="col-md-6 text-center text-md-start mb-md-0">
-                        <span class="text-white"><a href="#" class="border-bottom text-white"><i
+                        <span class="text-white"><a href="https://talking-brands.ro" class="border-bottom text-white"><i
                                     class="fas fa-copyright text-light me-2"></i>https://talking-brands.ro</a>, All right
                             reserved.</span>
                     </div>
                     <div class="col-md-6 text-center text-md-end text-white">
-
-                        <!--/*** This template is free as long as you keep the below author’s credit link/attribution link/backlink. ***/-->
-                        <!--/*** If you'd like to use the template without the below author’s credit link/attribution link/backlink, ***/-->
-                        <!--/*** you can purchase the Credit Removal License from "https://htmlcodex.com/credit-removal". ***/-->
                         Designed By <a class="border-bottom text-white" href="https://talking-brands.ro">talking-brands.ro</a>.
                     </div>
                 </div>

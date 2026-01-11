@@ -1,18 +1,108 @@
 <?php
-session_start(); // PORNEȘTE SESIUNEA AICI, LA ÎNCEPUTUL FIȘIERULUI
+session_start();
 include 'assets/php/config.php';
 
-// 1. Toate produsele (limita 8)
-$res_toate = $conn->query("SELECT * FROM produse LIMIT 8");
+// Funcție corectată pentru a respecta ordinea clauzelor SQL
+function getProducts($conn, $where_clause = "", $order_clause = "") {
+    // Ordinea corectă: SELECT -> FROM -> JOIN -> WHERE -> GROUP BY -> ORDER BY -> LIMIT
+    $sql = "SELECT p.*, AVG(r.nota) AS medie_rating, COUNT(r.id) AS nr_reviewuri 
+            FROM produse p 
+            LEFT JOIN reviewuri r ON p.id = r.id_produs 
+            $where_clause 
+            GROUP BY p.id 
+            $order_clause 
+            LIMIT 8";
+            
+    return $conn->query($sql);
+}
 
-// 2. Nou-venite (ultimele adăugate)
-$res_noi = $conn->query("SELECT * FROM produse ORDER BY id DESC LIMIT 8");
+// 1. Toate produsele
+$res_toate = getProducts($conn);
 
-// 3. Promo (produse care au pret_discount completat)
-$res_promo = $conn->query("SELECT * FROM produse WHERE pret_discount IS NOT NULL AND pret_discount > 0 LIMIT 8");
+// 2. Nou-venite (doar ultimele 4 produse adăugate)
+// $sql_noi = "SELECT p.*, AVG(r.nota) AS medie_rating FROM produse p 
+//             LEFT JOIN reviewuri r ON p.id = r.id_produs 
+//             GROUP BY p.id ORDER BY p.id DESC LIMIT 4";
+// $res_noi = $conn->query($sql_noi);
 
-// 4. Top Vânzări (putem simula luând produse cu stoc mai mic de 15, de exemplu)
-$res_top = $conn->query("SELECT * FROM produse WHERE stoc < 15 LIMIT 8");
+// $res_noi = getProducts($conn, "WHERE p.pret_discount IS NULL OR p.pret_discount = 0", "ORDER BY p.id DESC");
+
+// Nou-venite: Doar ultimele 2 produse, fără discount
+$sql_noi = "SELECT p.*, AVG(r.nota) AS medie_rating 
+            FROM produse p 
+            LEFT JOIN reviewuri r ON p.id = r.id_produs 
+            WHERE (p.pret_discount IS NULL OR p.pret_discount = 0)
+            GROUP BY p.id 
+            ORDER BY p.id DESC 
+            LIMIT 2"; // Aici am pus LIMIT 2
+
+$res_noi = $conn->query($sql_noi);
+
+// 3. Promo (Cu Where)
+$res_promo = getProducts($conn, "WHERE p.pret_discount > 0");
+
+// 4. Top Vânzări (Cu Where și Order By)
+$res_top = getProducts($conn, "WHERE p.stoc < 10", "ORDER BY p.stoc ASC");
+?>
+
+<?php
+function afiseazaProdus($p) {
+    $rating = ($p['medie_rating'] != null) ? round($p['medie_rating']) : 0;
+    $url_produs = "assets/php/product-page.php?id=" . $p['id'];
+    ?>
+    <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+        <div class="product-item border rounded h-100 d-flex flex-column">
+            <div class="product-item-inner">
+                <div class="product-item-inner-item">
+                    <img src="assets/images/product-img/<?php echo $p['imagine']; ?>" class="img-fluid w-100 rounded-top" alt="">
+
+                    <?php if($p['pret_discount'] > 0): ?>
+                        <div class="product-sale">sale</div>
+                    <?php endif; ?>
+
+                    <?php 
+                    $id_limita = 7;
+                    if($p['id'] >= $id_limita): ?>
+                        <div class="product-new">new</div>
+                    <?php endif; ?>
+                    <div class="product-details">
+                        <a href="<?php echo $url_produs; ?>"><i class="fa fa-eye fa-1x"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center p-4 flex-grow-1 d-flex flex-column">
+                <p class="text-muted mb-2 small"><?php echo $p['categorie']; ?></p>
+                <a href="<?php echo $url_produs; ?>" class="d-block h4"><?php echo $p['nume_produs']; ?></a>
+                <div class="mt-auto">
+                    <p class="mb-2"><?php echo $p['cantitate']; ?> kg</p>
+                    <?php if($p['pret_discount'] > 0): ?>
+                        <del class="text-muted"><?php echo number_format($p['pret'], 2); ?> lei</del>
+                        <span class="text-primary fw-bold fs-5"><?php echo number_format($p['pret_discount'], 2); ?> lei</span>
+                    <?php else: ?>
+                        <span class="text-primary fw-bold fs-5"><?php echo number_format($p['pret'], 2); ?> lei</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="product-item-add text-center pb-4 px-4">
+                <a href="assets/php/adauga-in-cos.php?id=<?php echo $p['id']; ?>" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
+                    <i class="fas fa-shopping-cart me-2"></i> Adaugă
+                </a>
+                <div class="d-flex justify-content-center">
+                    <div class="text-primary">
+                        <?php 
+                        for($i=1; $i<=5; $i++) {
+                            echo ($i <= $rating) ? '<i class="fas fa-star"></i>' : '<i class="far fa-star text-muted"></i>';
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -243,470 +333,41 @@ $res_top = $conn->query("SELECT * FROM produse WHERE stoc < 15 LIMIT 8");
                     <div class="tab-content">
                         <div id="tab-1" class="tab-pane fade show active p-0">
                             <div class="row g-4">
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded h-100 d-flex flex-column">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/pisici_hills_prescr.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-new">New</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=1"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Hill's Prescription Diet</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=1" class="d-block h4">Urinary Stress + Metabolic</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">3 kg</p>
-                                                <span class="text-primary fw-bold fs-5">217,90 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=1" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
-                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                            </a>
-                                            <div class="d-flex justify-content-center">
-                                                <div class="d-flex">
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded h-100 d-flex flex-column">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/pisici_royalcanin_britsh.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=2"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Royal Canin</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=2" class="d-block h4">British Shorthair Adult</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">2 kg</p>
-                                                <span class="text-primary fw-bold fs-5">107,90 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=2" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3"><i class="fas fa-shopping-cart me-2"></i> Adaugă</a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded h-100 d-flex flex-column">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/pisici_hills_prescr_metabolic.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-sale">sale</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=3"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Hill's Prescription Diet</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=3" class="d-block h4">Metabolic Weight Management</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">8 kg</p>
-                                                <del class="me-2 text-muted">492,90 lei</del>
-                                                <span class="text-primary fw-bold fs-5">443,60 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=3" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3"><i class="fas fa-shopping-cart me-2"></i> Adaugă</a>
-                                            <div class="d-flex justify-content-center">
-                                                <div class="d-flex">
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded h-100 d-flex flex-column wow fadeInUp" data-wow-delay="0.1s">
-                                        <div class="product-item-inner flex-grow-1 d-flex flex-column">
-                                            
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/caini_hill_s_scienceplan_adult.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-new">New</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=4"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-
-                                            <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                                <p class="text-muted mb-2">Hill's Science Plan</p>
-                                                <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=4" class="d-block h4">Adult 1-6 Medium Chicken</a>
-                                                
-                                                <div class="mt-auto">
-                                                    <p class="mb-2">14 kg</p>
-                                                    <div class="mb-3">
-                                                        <div style="height: 24px; visibility: hidden;" class="d-none d-md-block"></div>
-                                                        <span class="text-primary fw-bold fs-5">278,90 lei</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div> 
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=4" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
-                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                            </a>
-                                            <div class="d-flex justify-content-center">
-                                                <div class="d-flex">
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded h-100 d-flex flex-column wow fadeInUp" data-wow-delay="0.1s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/caini_britcare_hypoallergenic.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-sale">sale</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=5"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Brit Care</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=5" class="d-block h4">Hypoallergenic Dog Champion Somon</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">12 kg</p>
-                                                <del class="me-2 text-muted">273,90 lei</del>
-                                                <span class="text-primary fw-bold fs-5">248,60 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=5" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3"><i class="fas fa-shopping-cart me-2"></i> Adaugă</a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded h-100 d-flex flex-column wow fadeInUp" data-wow-delay="0.1s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/caini_royalcanin_gastro.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-sale">sale</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=6"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Royal Canin Veterinary</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=6" class="d-block h4">Canine Gastrointestinal Low Fat</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">6 kg</p>
-                                                <del class="me-2 text-muted">239,90 lei</del>
-                                                <span class="text-primary fw-bold fs-5">219,00 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=6" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3"><i class="fas fa-shopping-cart me-2"></i> Adaugă</a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded h-100 d-flex flex-column wow fadeInUp" data-wow-delay="0.3s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/caini_advance_veterinarydiets_atopic.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-new">New</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=7"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Advance Veterinary Diets</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=7" class="d-block h4">Hrană uscată Atopic Iepure</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">12 kg</p>
-                                                <span class="text-primary fw-bold fs-5">352,90 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=7" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3"><i class="fas fa-shopping-cart me-2"></i> Adaugă</a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded h-100 d-flex flex-column wow fadeInUp" data-wow-delay="0.5s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/caini_wolf_ruby_midnight.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=8"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Wolf of Wilderness</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=8" class="d-block h4">"Ruby Midnight" Vită & Iepure</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">12 kg</p>
-                                                <span class="text-primary fw-bold fs-5">259,90 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=8" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3"><i class="fas fa-shopping-cart me-2"></i> Adaugă</a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <?php 
+                                if ($res_toate && $res_toate->num_rows > 0) {
+                                    while($p = $res_toate->fetch_assoc()) { afiseazaProdus($p); }
+                                } else { echo "<p class='text-center'>Nu sunt produse.</p>"; }
+                                ?>
                             </div>
                         </div>
 
-                        <div id="tab-2" class="tab-pane fade show p-0">
+                        <div id="tab-2" class="tab-pane fade p-0"> 
                             <div class="row g-4">
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded wow fadeInUp h-100 d-flex flex-column" data-wow-delay="0.1s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/pisici_hills_prescr.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-new">New</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=1"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Hill's Prescription Diet</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=1" class="d-block h4">Urinary Stress + Metabolic</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">3 kg</p>
-                                                <span class="text-primary fw-bold fs-5">217,90 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=1" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
-                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                            </a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded wow fadeInUp h-100 d-flex flex-column" data-wow-delay="0.3s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/caini_advance_veterinarydiets_atopic.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-new">New</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=7"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Advance Veterinary Diets</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=7" class="d-block h4">Hrană uscată Atopic Iepure</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">12 kg</p>
-                                                <span class="text-primary fw-bold fs-5">352,90 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=7" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
-                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                            </a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded h-100 d-flex flex-column wow fadeInUp" data-wow-delay="0.1s">
-                                        <div class="product-item-inner flex-grow-1 d-flex flex-column">
-                                            
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/caini_hill_s_scienceplan_adult.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-new">New</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=4"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-
-                                            <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                                <p class="text-muted mb-2">Hill's Science Plan</p>
-                                                <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=4" class="d-block h4">Adult 1-6 Medium Chicken</a>
-                                                
-                                                <div class="mt-auto">
-                                                    <p class="mb-2">14 kg</p>
-                                                    <div class="mb-3">
-                                                        <div style="height: 24px; visibility: hidden;" class="d-none d-md-block"></div>
-                                                        <span class="text-primary fw-bold fs-5">278,90 lei</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div> 
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=4" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
-                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                            </a>
-                                            <div class="d-flex justify-content-center">
-                                                <div class="d-flex">
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                    <i class="fas fa-star text-primary"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <?php 
+                            if ($res_noi && $res_noi->num_rows > 0) {
+                                while($p = $res_noi->fetch_assoc()) { afiseazaProdus($p); }
+                            }
+                            ?>
                             </div>
                         </div>
 
-                        <div id="tab-3" class="tab-pane fade show p-0">
+                        <div id="tab-3" class="tab-pane fade p-0"> 
                             <div class="row g-4">
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded wow fadeInUp h-100 d-flex flex-column" data-wow-delay="0.1s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/pisici_hills_prescr_metabolic.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-sale">sale</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=3"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Hill's Prescription Diet</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=3" class="d-block h4">Metabolic Weight Management Pui</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">8 kg</p>
-                                                <del class="me-2 text-muted">492,90 lei</del>
-                                                <span class="text-primary fw-bold fs-5">443,60 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=3" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
-                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                            </a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded wow fadeInUp h-100 d-flex flex-column" data-wow-delay="0.3s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/caini_britcare_hypoallergenic.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-sale">sale</div>
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=5"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Brit Care</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=5" class="d-block h4">Hypoallergenic Dog Champion Somon</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">12 kg</p>
-                                                <del class="me-2 text-muted">273,90 lei</del>
-                                                <span class="text-primary fw-bold fs-5">248,60 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=5" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
-                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                            </a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <?php 
+                                if ($res_noi && $res_promo->num_rows > 0) {
+                                    while($p = $res_promo->fetch_assoc()) { afiseazaProdus($p); }
+                                }
+                                ?>
                             </div>
                         </div>
 
-                        <div id="tab-4" class="tab-pane fade show p-0">
+                        <div id="tab-4" class="tab-pane fade p-0"> 
                             <div class="row g-4">
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded wow fadeInUp h-100 d-flex flex-column" data-wow-delay="0.1s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/pisici_royalcanin_britsh.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=2"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Royal Canin</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=2" class="d-block h4">Hrană uscată British Shorthair Adult</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">2 kg</p>
-                                                <span class="text-primary fw-bold fs-5">107,90 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=2" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
-                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                            </a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                                    <div class="product-item border rounded wow fadeInUp h-100 d-flex flex-column" data-wow-delay="0.3s">
-                                        <div class="product-item-inner">
-                                            <div class="product-item-inner-item">
-                                                <img src="assets/images/product-img/caini_wolf_ruby_midnight.webp" class="img-fluid w-100 rounded-top" alt="">
-                                                <div class="product-details">
-                                                    <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=8"><i class="fa fa-eye fa-1x"></i></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center p-4 flex-grow-1 d-flex flex-column">
-                                            <p class="text-muted mb-2">Wolf of Wilderness</p>
-                                            <a href="<?php echo BASE_URL; ?>assets/php/product-page.php?id=8" class="d-block h4">Ruby Midnight Vită & Iepure</a>
-                                            <div class="mt-auto">
-                                                <p class="mb-2">12 kg</p>
-                                                <span class="text-primary fw-bold fs-5">259,90 lei</span>
-                                            </div>
-                                        </div>
-                                        <div class="product-item-add text-center pb-4 px-4">
-                                            <a href="assets/php/adauga-in-cos.php?id=8" class="btn btn-primary border-secondary rounded-pill py-2 px-4 w-100 mb-3">
-                                                <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                            </a>
-                                            <div class="d-flex justify-content-center"><div class="d-flex"><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i><i class="fas fa-star text-primary"></i></div></div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <?php 
+                                if ($res_noi && $res_top->num_rows > 0) {
+                                    while($p = $res_top->fetch_assoc()) { afiseazaProdus($p); }
+                                }
+                                ?>
                             </div>
                         </div>
                     </div>
