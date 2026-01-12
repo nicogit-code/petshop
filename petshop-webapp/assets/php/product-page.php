@@ -33,13 +33,30 @@ $medie_produs = ($rating_data['medie'] != null) ? round($rating_data['medie']) :
 $total_recenzii = $rating_data['total'];
 
 // Related products - extragere produse similare
-$categorie_similara = $p['categorie'];
-$id_curent = $p['id'];
+// $categorie_similara = $p['categorie'];
+// $id_curent = $p['id'];
 
 // Selectăm maxim 6 produse din aceeași categorie, excluzând produsul actual
 // Folosim ORDER BY RAND() pentru ca sugestiile să fie diferite la fiecare refresh
-$sql_related = "SELECT * FROM produse WHERE categorie = '$categorie_similara' AND id != $id_curent LIMIT 6";
+// $sql_related = "SELECT * FROM produse WHERE categorie = '$categorie_similara' AND id != $id_curent LIMIT 6";
+// $res_related = $conn->query($sql_related);
+
+// Related products
+// 1. Definim categoria pentru filtrare
+$categorie_similara = $p['categorie']; 
+
+// 2. Extragem 6 produse similare din aceeași categorie
+// EXCLUDEM produsul curent (id != $id_produs) și folosim RAND() pentru diversitate
+$sql_related = "SELECT p.*, AVG(r.nota) AS medie_rating 
+                FROM produse p 
+                LEFT JOIN reviewuri r ON p.id = r.id_produs 
+                WHERE p.categorie = '$categorie_similara' AND p.id != $id_produs 
+                GROUP BY p.id 
+                ORDER BY RAND() 
+                LIMIT 6";
+
 $res_related = $conn->query($sql_related);
+?>
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -379,9 +396,9 @@ $res_related = $conn->query($sql_related);
                         <div class="related-item rounded">
                             <div class="related-item-inner border rounded">
                                 <div class="related-item-inner-item">
-                                    <img src="../images/product-img/<?php echo $rel['imagine']; ?>" class="img-fluid w-100 rounded-top" alt="">
+                                    <img src="../images/product-img/<?php echo $rel['imagine']; ?>" class="img-fluid w-100 rounded-top" alt="<?php echo $rel['nume_produs']; ?>">
                                     
-                                    <?php if(isset($rel['este_nou']) && $rel['este_nou'] == 1): ?>
+                                    <?php if($rel['id'] >= 7): ?>
                                         <div class="related-new">New</div>
                                     <?php endif; ?>
 
@@ -389,29 +406,29 @@ $res_related = $conn->query($sql_related);
                                         <a href="product-page.php?id=<?php echo $rel['id']; ?>"><i class="fa fa-eye fa-1x"></i></a>
                                     </div>
                                 </div>
+                                
                                 <div class="text-center rounded-bottom p-4">
                                     <small class="text-primary"><?php echo $rel['subcategorie']; ?></small>
-                                    <a href="product-page.php?id=<?php echo $rel['id']; ?>" class="d-block h4"><?php echo $rel['nume_produs']; ?></a>
+                                    <a href="product-page.php?id=<?php echo $rel['id']; ?>" class="d-block h4 mb-2"><?php echo $rel['nume_produs']; ?></a>
                                     
-                                    <?php if(!empty($rel['pret_discount'])): ?>
-                                        <del class="me-2 fs-5"><?php echo $rel['pret']; ?> lei</del>
-                                        <span class="text-primary fs-5"><?php echo $rel['pret_discount']; ?> lei</span>
-                                    <?php else: ?>
-                                        <span class="text-primary fs-5"><?php echo $rel['pret']; ?> lei</span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <div class="related-item-add border border-top-0 rounded-bottom text-center p-4 pt-0">
-                                <a href="#" class="btn btn-primary border-secondary rounded-pill py-2 px-4 mb-4">
-                                    <i class="fas fa-shopping-cart me-2"></i> Adaugă
-                                </a>
-                                <div class="d-flex justify-content-center">
-                                    <div class="d-flex">
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
+                                    <div class="d-flex justify-content-center mt-2 mb-4">
+                                        <div class="text-primary" style="font-size: 0.9rem;">
+                                            <?php 
+                                            $rating_rel = ($rel['medie_rating'] != null) ? round($rel['medie_rating']) : 0;
+                                            for ($i = 1; $i <= 5; $i++) {
+                                                echo ($i <= $rating_rel) ? '<i class="fas fa-star"></i>' : '<i class="far fa-star text-muted"></i>';
+                                            }
+                                            ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <?php if(!empty($rel['pret_discount']) && $rel['pret_discount'] > 0): ?>
+                                            <del class="me-2 text-muted"><?php echo number_format($rel['pret'], 2); ?> lei</del>
+                                            <span class="text-primary fw-bold"><?php echo number_format($rel['pret_discount'], 2); ?> lei</span>
+                                        <?php else: ?>
+                                            <span class="text-primary fw-bold"><?php echo number_format($rel['pret'], 2); ?> lei</span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

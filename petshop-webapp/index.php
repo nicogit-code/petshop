@@ -19,15 +19,7 @@ function getProducts($conn, $where_clause = "", $order_clause = "") {
 // 1. Toate produsele
 $res_toate = getProducts($conn);
 
-// 2. Nou-venite (doar ultimele 4 produse adăugate)
-// $sql_noi = "SELECT p.*, AVG(r.nota) AS medie_rating FROM produse p 
-//             LEFT JOIN reviewuri r ON p.id = r.id_produs 
-//             GROUP BY p.id ORDER BY p.id DESC LIMIT 4";
-// $res_noi = $conn->query($sql_noi);
-
-// $res_noi = getProducts($conn, "WHERE p.pret_discount IS NULL OR p.pret_discount = 0", "ORDER BY p.id DESC");
-
-// Nou-venite: Doar ultimele 2 produse, fără discount
+// 2. Nou-venite (Doar ultimele 2 produse, fără discount)
 $sql_noi = "SELECT p.*, AVG(r.nota) AS medie_rating 
             FROM produse p 
             LEFT JOIN reviewuri r ON p.id = r.id_produs 
@@ -117,9 +109,7 @@ function afiseazaProdus($p) {
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
     <!-- Icon Font Stylesheet -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
